@@ -37,7 +37,7 @@ class Openvpn(ConanFile):
             self.tool_requires("pkgconf/2.5.1")
 
     def requirements(self):
-        self.requires("openssl/3.6.1", visible=False)
+        self.requires("openssl/3.6.3", visible=False)
         self.requires("lz4/1.10.0", visible=False)
         self.requires("lzo/2.10", visible=False)
         if self.settings.os == "Linux":
@@ -52,7 +52,7 @@ class Openvpn(ConanFile):
         )
 
     def _patch_sources(self):
-        replace_in_file(self, 
+        replace_in_file(self,
             os.path.join(self.source_folder, "CMakeLists.txt"),
             "/Qspectre",
             ""
