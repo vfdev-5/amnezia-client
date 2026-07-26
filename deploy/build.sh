@@ -62,7 +62,7 @@ done
 HOST=$(echo "$HOST" | tr '[:upper:]' '[:lower:]')
 TARGET=$(echo "$TARGET" | tr '[:upper:]' '[:lower:]')
 
-bases=(~/Qt /opt/Qt)
+bases=(~/Qt /opt/Qt /opt/qt /opt/qif)
 [ -n "${QT_INSTALL_DIR}" ] && bases=("${QT_INSTALL_DIR}/Qt" "${bases[@]}")
 
 # seek for Qt installation in bases folders

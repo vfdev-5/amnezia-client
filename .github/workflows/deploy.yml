@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - '**'
+  workflow_dispatch:
 
 env:
   QT_MIRROR: https://mirrors.ocf.berkeley.edu/qt/ # https://download.qt.io/static/mirrorlist/
@@ -93,15 +94,15 @@ jobs:
         setup-python: 'true'
         tools: 'tools_ifw'
         set-env: 'true'
-        aqtversion: '==3.3.0'       
-        py7zrversion: '==0.22.*'  
+        aqtversion: '==3.3.0'
+        py7zrversion: '==0.22.*'
         extra: '--base ${{ env.QT_MIRROR }}'
 
     - name: 'Setup python'
       uses: actions/setup-python@v6
       with:
         python-version: 3.14
-      
+
     - name: 'Install conan'
       run: pip install "conan==2.28.0"
 
@@ -146,7 +147,7 @@ jobs:
       with:
         submodules: 'true'
         fetch-depth: 10
-    
+
     - uses: actions/setup-python@v6
       with:
         python-version: 3.14
@@ -158,7 +159,7 @@ jobs:
 
     - name: 'Build dependencies'
       run: cmake -S . -B build -DPREBUILTS_ONLY=1
-    
+
     - name: 'Authorize in remote'
       if: github.ref == 'refs/heads/dev'
       run: conan remote login amnezia "${{ secrets.CONAN_USER }}" -p "${{ secrets.CONAN_PASSWORD }}"
@@ -206,9 +207,9 @@ jobs:
         setup-python: 'true'
         tools: 'tools_ifw'
         set-env: 'true'
-        aqtversion: '==3.3.0'       
-        py7zrversion: '==0.22.*'  
-        extra: '--base ${{ env.QT_MIRROR }}' 
+        aqtversion: '==3.3.0'
+        py7zrversion: '==0.22.*'
+        extra: '--base ${{ env.QT_MIRROR }}'
 
     - name: 'Setup mvsc'
       uses: ilammy/msvc-dev-cmd@v1
@@ -252,7 +253,7 @@ jobs:
         path: deploy/build/AmneziaVPN_*_windows_x64.msi
         archive: false
         retention-days: 7
-      
+
     - name: 'Upload IFW installer artifact'
       uses: actions/upload-artifact@v7
       with:
@@ -280,7 +281,7 @@ jobs:
       with:
         submodules: 'true'
         fetch-depth: 10
-    
+
     - uses: actions/setup-python@v6
       with:
         python-version: 3.14
@@ -294,7 +295,7 @@ jobs:
 
     - name: 'Build dependencies'
       run: cmake -S . -B build -G Xcode -DPREBUILTS_ONLY=1 -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos
-    
+
     - name: 'Authorize in remote'
       if: github.ref == 'refs/heads/dev'
       run: conan remote login amnezia "${{ secrets.CONAN_USER }}" -p "${{ secrets.CONAN_PASSWORD }}"
@@ -428,7 +429,7 @@ jobs:
       with:
         submodules: 'true'
         fetch-depth: 10
-    
+
     - uses: actions/setup-python@v6
       with:
         python-version: 3.14
@@ -442,7 +443,7 @@ jobs:
 
     - name: 'Build dependencies'
       run: cmake -S . -B build -G Xcode -DPREBUILTS_ONLY=1
-    
+
     - name: 'Authorize in remote'
       if: github.ref == 'refs/heads/dev'
       run: conan remote login amnezia "${{ secrets.CONAN_USER }}" -p "${{ secrets.CONAN_PASSWORD }}"
@@ -514,8 +515,8 @@ jobs:
         dir: ${{ runner.temp }}
         setup-python: 'true'
         set-env: 'true'
-        aqtversion: '==3.3.0'       
-        py7zrversion: '==0.22.*'  
+        aqtversion: '==3.3.0'
+        py7zrversion: '==0.22.*'
         extra: '--base ${{ env.QT_MIRROR }}'
 
     - name: 'Setup python'
@@ -570,7 +571,7 @@ jobs:
       with:
         submodules: 'true'
         fetch-depth: 10
-    
+
     - uses: actions/setup-python@v6
       with:
         python-version: 3.14
@@ -584,7 +585,7 @@ jobs:
 
     - name: 'Build dependencies'
       run: cmake -S . -B build -G Xcode -DPREBUILTS_ONLY=1 -DMACOS_NE=TRUE
-    
+
     - name: 'Authorize in remote'
       if: github.ref == 'refs/heads/dev'
       run: conan remote login amnezia "${{ secrets.CONAN_USER }}" -p "${{ secrets.CONAN_PASSWORD }}"
@@ -699,7 +700,7 @@ jobs:
       with:
         submodules: 'true'
         fetch-depth: 10
-    
+
     - uses: actions/setup-python@v6
       with:
         python-version: 3.14
@@ -927,7 +928,7 @@ jobs:
 
       - name: Add PR link to build summary
         if: ${{ fromJSON(steps.pull_request.outputs.data)[0].number != '' }}
-        run: | 
+        run: |
           echo "Pull request:" >> $GITHUB_STEP_SUMMARY
           echo "[[#${{ fromJSON(steps.pull_request.outputs.data)[0].number }}] ${{ fromJSON(steps.pull_request.outputs.data)[0].title }}](${{ fromJSON(steps.pull_request.outputs.data)[0].html_url }})" >> $GITHUB_STEP_SUMMARY
 
