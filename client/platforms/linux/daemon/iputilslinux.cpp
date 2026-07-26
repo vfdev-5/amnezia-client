@@ -111,14 +111,14 @@ bool IPUtilsLinux::addIP4AddressToDevice(const InterfaceConfig& config) {
   // SIOCSIFADDR does not set the prefix length; apply the configured netmask.
   struct sockaddr_in* ifrMask = (struct sockaddr_in*)&ifr.ifr_netmask;
   ifrMask->sin_family = AF_INET;
-  quint32 netmask = parsedAddr.second == 0
-                        ? 0
-                        : 0xffffffffu << (32 - parsedAddr.second);
+  quint32 netmask = parsedAddr.second > 0
+                        ? 0xffffffffu << (32 - parsedAddr.second)
+                        : 0;
   ifrMask->sin_addr.s_addr = htonl(netmask);
   ret = ioctl(sockfd, SIOCSIFNETMASK, &ifr);
   if (ret) {
     logger.error() << "Failed to set IPv4 netmask:" << parsedAddr.second
-                   << "error:" << strerror(errno);
+                   << " error:" << strerror(errno);
     return false;
   }
   return true;
