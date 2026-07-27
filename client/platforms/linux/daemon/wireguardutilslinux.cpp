@@ -343,7 +343,7 @@ bool WireguardUtilsLinux::updateRoutePrefix(const IPAddress& prefix) {
         return false;
     }
     if (prefix.prefixLength() > 0) {
-        return m_rtmonitor->insertRoute(prefix);
+          return m_rtmonitor->deleteRoute(prefix);
     }
 
     // Ensure that we do not replace the default route.

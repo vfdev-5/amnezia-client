@@ -18,6 +18,7 @@
 
 namespace {
 Logger logger("IPUtilsLinux");
+constexpr quint32 IPv4FullMask = 0xffffffffU;
 }
 
 IPUtilsLinux::IPUtilsLinux(QObject* parent) : IPUtils(parent) {
@@ -73,16 +74,23 @@ bool IPUtilsLinux::setMTUAndUp(const InterfaceConfig& config) {
 
 bool IPUtilsLinux::addIP4AddressToDevice(const InterfaceConfig& config) {
   struct ifreq ifr;
-  struct sockaddr_in* ifrAddr = (struct sockaddr_in*)&ifr.ifr_addr;
+
+  QPair<QHostAddress, int> parsedSubnet =
+      QHostAddress::parseSubnet(config.m_deviceIpv4Address);
+  QHostAddress deviceAddress(config.m_deviceIpv4Address.section('/', 0, 0));
+  if (deviceAddress.protocol() != QAbstractSocket::IPv4Protocol ||
+      parsedSubnet.second < 0 || parsedSubnet.second > 32) {
+    logger.error() << "Invalid IPv4 address:" << config.m_deviceIpv4Address;
+    return false;
+  }
 
   // Name the interface and set family
+  memset(&ifr, 0, sizeof(ifr));
   strncpy(ifr.ifr_name, WG_INTERFACE, IFNAMSIZ);
+  struct sockaddr_in* ifrAddr = (struct sockaddr_in*)&ifr.ifr_addr;
   ifr.ifr_addr.sa_family = AF_INET;
 
-  // Get the device address to add to interface
-  QPair<QHostAddress, int> parsedAddr =
-      QHostAddress::parseSubnet(config.m_deviceIpv4Address);
-  QByteArray _deviceAddr = parsedAddr.first.toString().toLocal8Bit();
+  QByteArray _deviceAddr = deviceAddress.toString().toLocal8Bit();
   char* deviceAddr = _deviceAddr.data();
   inet_pton(AF_INET, deviceAddr, &ifrAddr->sin_addr);
 
@@ -101,6 +109,22 @@ bool IPUtilsLinux::addIP4AddressToDevice(const InterfaceConfig& config) {
                    << "error:" << strerror(errno);
     return false;
   }
+
+  memset(&ifr, 0, sizeof(ifr));
+  strncpy(ifr.ifr_name, WG_INTERFACE, IFNAMSIZ);
+  struct sockaddr_in* ifrMask = (struct sockaddr_in*)&ifr.ifr_netmask;
+  ifrMask->sin_family = AF_INET;
+  quint32 mask = parsedSubnet.second == 0
+                    ? 0
+                    : htonl(IPv4FullMask << (32 - parsedSubnet.second));
+  ifrMask->sin_addr.s_addr = mask;
+  ret = ioctl(sockfd, SIOCSIFNETMASK, &ifr);
+  if (ret) {
+    logger.error() << "Failed to set IPv4 netmask:" << parsedSubnet.second
+                   << "error:" << strerror(errno);
+    return false;
+  }
+
   return true;
 }
 
