@@ -26,11 +26,13 @@ class LinuxRouteMonitor final : public QObject {
 
   bool addExclusionRoute(const IPAddress& prefix);
   bool deleteExclusionRoute(const IPAddress& prefix);
+  void flushExclusionRoutes();
  private:
   static QString addrToString(const struct sockaddr* sa);
   static QString addrToString(const QByteArray& data);
   bool rtmSendRoute(int action, int flags, int type,
                     const IPAddress& prefix);
+  QList<IPAddress> m_exclusionRoutes;
   QString m_ifname;
   unsigned int m_ifindex = 0;
   int m_nlsock = -1;
