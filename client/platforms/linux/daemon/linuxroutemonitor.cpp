@@ -126,8 +126,12 @@ bool LinuxRouteMonitor::deleteExclusionRoute(const IPAddress& prefix) {
 void LinuxRouteMonitor::flushExclusionRoutes() {
     while (!m_exclusionRoutes.isEmpty()) {
         IPAddress prefix = m_exclusionRoutes.takeFirst();
+        logger.debug() << "Flushing exclusion route for" << prefix.toString();
         const int flags = NLM_F_REQUEST | NLM_F_ACK;
-        rtmSendRoute(RTM_DELROUTE, flags, RTN_THROW, prefix);
+        if (!rtmSendRoute(RTM_DELROUTE, flags, RTN_THROW, prefix)) {
+            logger.warning() << "Failed to flush exclusion route for"
+                             << prefix.toString();
+        }
     }
 }
 
