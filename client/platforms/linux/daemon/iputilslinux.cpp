@@ -99,6 +99,25 @@ bool IPUtilsLinux::addIP4AddressToDevice(const InterfaceConfig& config) {
                    << "error:" << strerror(errno);
     return false;
   }
+
+  // Set the subnet mask from the prefix length
+  int prefixLength = parsedAddr.second;
+  struct sockaddr_in* ifrMask = (struct sockaddr_in*)&ifr.ifr_netmask;
+  ifrMask->sin_family = AF_INET;
+  if (prefixLength >= 32) {
+    ifrMask->sin_addr.s_addr = htonl(0xFFFFFFFFu);
+  } else if (prefixLength == 0) {
+    ifrMask->sin_addr.s_addr = 0;
+  } else {
+    ifrMask->sin_addr.s_addr = htonl(0xFFFFFFFFu << (32 - prefixLength));
+  }
+  ret = ioctl(sockfd, SIOCSIFNETMASK, &ifr);
+  if (ret) {
+    logger.error() << "Failed to set IPv4 netmask for prefix length"
+                   << prefixLength << "error:" << strerror(errno);
+    return false;
+  }
+
   return true;
 }
 
