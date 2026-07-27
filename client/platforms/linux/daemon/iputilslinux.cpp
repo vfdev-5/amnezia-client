@@ -97,7 +97,14 @@ bool IPUtilsLinux::addIP4AddressToDevice(const InterfaceConfig& config) {
   int prefixLength = 32;
   int slashPos = addrStr.indexOf('/');
   if (slashPos > 0) {
-    prefixLength = addrStr.mid(slashPos + 1).toInt();
+    bool ok = false;
+    int parsed = addrStr.mid(slashPos + 1).toInt(&ok);
+    if (ok && parsed >= 0 && parsed <= 32) {
+      prefixLength = parsed;
+    } else {
+      logger.warning() << "Invalid IPv4 prefix length in"
+                       << config.m_deviceIpv4Address << ", defaulting to /32";
+    }
     addrStr = addrStr.left(slashPos);
   }
   QByteArray _deviceAddr = addrStr.toLocal8Bit();
@@ -124,7 +131,11 @@ bool IPUtilsLinux::addIP4AddressToDevice(const InterfaceConfig& config) {
   struct sockaddr_in* ifrMask = (struct sockaddr_in*)&ifr.ifr_netmask;
   memset(ifrMask, 0, sizeof(*ifrMask));
   ifrMask->sin_family = AF_INET;
-  ifrMask->sin_addr.s_addr = htonl(0xFFFFFFFF << (32 - prefixLength));
+  if (prefixLength == 0) {
+    ifrMask->sin_addr.s_addr = 0;
+  } else {
+    ifrMask->sin_addr.s_addr = htonl(0xFFFFFFFF << (32 - prefixLength));
+  }
   ret = ioctl(sockfd, SIOCSIFNETMASK, &ifr);
   if (ret) {
     logger.error() << "Failed to set IPv4 netmask, error:" << strerror(errno);
@@ -146,7 +157,14 @@ bool IPUtilsLinux::addIP6AddressToDevice(const InterfaceConfig& config) {
   QString addrStr = config.m_deviceIpv6Address;
   int slashPos = addrStr.indexOf('/');
   if (slashPos > 0) {
-    ifr6.prefixlen = addrStr.mid(slashPos + 1).toUInt();
+    bool ok = false;
+    uint parsed = addrStr.mid(slashPos + 1).toUInt(&ok);
+    if (ok && parsed <= 128) {
+      ifr6.prefixlen = parsed;
+    } else {
+      logger.warning() << "Invalid IPv6 prefix length in"
+                       << config.m_deviceIpv6Address << ", defaulting to /64";
+    }
     addrStr = addrStr.left(slashPos);
   }
   QByteArray _deviceAddr = addrStr.toLocal8Bit();
