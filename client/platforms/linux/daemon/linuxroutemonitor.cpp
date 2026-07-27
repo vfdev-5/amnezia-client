@@ -159,7 +159,7 @@ bool LinuxRouteMonitor::rtmSendRoute(int action, int flags, int type,
     rtm->rtm_dst_len = ip.cidr;
     rtm->rtm_family = ip.family;
     rtm->rtm_type = type;
-    rtm->rtm_table = RT_TABLE_UNSPEC;
+    rtm->rtm_table = RT_TABLE_MAIN;
     rtm->rtm_protocol = RTPROT_BOOT;
     rtm->rtm_scope = RT_SCOPE_UNIVERSE;
 
