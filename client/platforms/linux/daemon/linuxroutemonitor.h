@@ -11,7 +11,11 @@
 #include <QObject>
 #include <QSocketNotifier>
 
+#include <netinet/in.h>
+
 #include "ipaddress.h"
+
+struct nlmsghdr;
 
 
 class LinuxRouteMonitor final : public QObject {
@@ -27,11 +31,17 @@ class LinuxRouteMonitor final : public QObject {
   bool addExclusionRoute(const IPAddress& prefix);
   bool deleteExclusionRoute(const IPAddress& prefix);
   void flushExclusionRoutes();
+
  private:
-  static QString addrToString(const struct sockaddr* sa);
-  static QString addrToString(const QByteArray& data);
   bool rtmSendRoute(int action, int flags, int type,
                     const IPAddress& prefix);
+  bool rtmSendExclusionRoute(int action, const IPAddress& prefix,
+                             unsigned int ifindex, int gwfamily,
+                             const void* gateway, size_t gwlen);
+  void fetchDefaultRoutes();
+  void handleRouteChange(struct nlmsghdr* nlmsg);
+  void updateExclusionRoutes(int family);
+
   QString m_ifname;
   unsigned int m_ifindex = 0;
   int m_nlsock = -1;
@@ -39,9 +49,14 @@ class LinuxRouteMonitor final : public QObject {
   QSocketNotifier* m_notifier = nullptr;
   QList<IPAddress> m_exclusionRoutes;
 
- private slots:
-    void nlsockReady();
+  // Default gateway tracking (adapted from MacosRouteMonitor).
+  struct in_addr m_defaultGwIpv4;
+  unsigned int m_defaultIfindexIpv4 = 0;
+  struct in6_addr m_defaultGwIpv6;
+  unsigned int m_defaultIfindexIpv6 = 0;
 
+ private slots:
+  void nlsockReady();
 };
 
 #endif  // LINUXROUTEMONITOR_H
