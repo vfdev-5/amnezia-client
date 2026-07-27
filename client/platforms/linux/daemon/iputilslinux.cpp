@@ -31,9 +31,7 @@ IPUtilsLinux::~IPUtilsLinux() {
 }
 
 bool IPUtilsLinux::addInterfaceIPs(const InterfaceConfig& config) {
-  bool ret = addIP4AddressToDevice(config);
-  addIP6AddressToDevice(config);
-  return ret;
+  return addIP4AddressToDevice(config) && addIP6AddressToDevice(config);
 }
 
 bool IPUtilsLinux::setMTUAndUp(const InterfaceConfig& config) {
@@ -79,10 +77,16 @@ bool IPUtilsLinux::addIP4AddressToDevice(const InterfaceConfig& config) {
   strncpy(ifr.ifr_name, WG_INTERFACE, IFNAMSIZ);
   ifr.ifr_addr.sa_family = AF_INET;
 
-  // Get the device address to add to interface
+  // Parse the address string to extract host IP and prefix length.
+  // Note: QHostAddress::parseSubnet() returns the network address (e.g.
+  // "10.8.0.4/24" -> "10.8.0.0"), so we extract the host IP directly.
   QPair<QHostAddress, int> parsedAddr =
       QHostAddress::parseSubnet(config.m_deviceIpv4Address);
-  QByteArray _deviceAddr = parsedAddr.first.toString().toLocal8Bit();
+  int prefixLength = parsedAddr.second;
+
+  // Extract the host address (before the '/')
+  QString hostIp = config.m_deviceIpv4Address.section('/', 0, 0);
+  QByteArray _deviceAddr = hostIp.toLocal8Bit();
   char* deviceAddr = _deviceAddr.data();
   inet_pton(AF_INET, deviceAddr, &ifrAddr->sin_addr);
 
@@ -101,6 +105,24 @@ bool IPUtilsLinux::addIP4AddressToDevice(const InterfaceConfig& config) {
                    << "error:" << strerror(errno);
     return false;
   }
+
+  // Set the subnet mask from the prefix length
+  struct sockaddr_in* ifrMask = (struct sockaddr_in*)&ifr.ifr_netmask;
+  ifrMask->sin_family = AF_INET;
+  if (prefixLength >= 32) {
+    ifrMask->sin_addr.s_addr = htonl(0xFFFFFFFFu);
+  } else if (prefixLength == 0) {
+    ifrMask->sin_addr.s_addr = 0;
+  } else {
+    ifrMask->sin_addr.s_addr = htonl(0xFFFFFFFFu << (32 - prefixLength));
+  }
+  ret = ioctl(sockfd, SIOCSIFNETMASK, &ifr);
+  if (ret) {
+    logger.error() << "Failed to set IPv4 netmask for prefix length"
+                   << prefixLength << "error:" << strerror(errno);
+    return false;
+  }
+
   return true;
 }
 
@@ -109,10 +131,18 @@ bool IPUtilsLinux::addIP6AddressToDevice(const InterfaceConfig& config) {
   struct in6_ifreq ifr6;
   ifr6.prefixlen = 64;
 
-  // Get the device address to add to ifr6 interface
+  // Parse the address string to extract host IP and prefix length.
+  // Note: QHostAddress::parseSubnet() returns the network address,
+  // so we extract the host IP directly.
   QPair<QHostAddress, int> parsedAddr =
       QHostAddress::parseSubnet(config.m_deviceIpv6Address);
-  QByteArray _deviceAddr = parsedAddr.first.toString().toLocal8Bit();
+  if (parsedAddr.second >= 0) {
+    ifr6.prefixlen = parsedAddr.second;
+  }
+
+  // Extract the host address (before the '/')
+  QString hostIp = config.m_deviceIpv6Address.section('/', 0, 0);
+  QByteArray _deviceAddr = hostIp.toLocal8Bit();
   char* deviceAddr = _deviceAddr.data();
   inet_pton(AF_INET6, deviceAddr, &ifr6.addr);
 
