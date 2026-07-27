@@ -77,10 +77,16 @@ bool IPUtilsLinux::addIP4AddressToDevice(const InterfaceConfig& config) {
   strncpy(ifr.ifr_name, WG_INTERFACE, IFNAMSIZ);
   ifr.ifr_addr.sa_family = AF_INET;
 
-  // Get the device address to add to interface
+  // Parse the address string to extract host IP and prefix length.
+  // Note: QHostAddress::parseSubnet() returns the network address (e.g.
+  // "10.8.0.4/24" -> "10.8.0.0"), so we extract the host IP directly.
   QPair<QHostAddress, int> parsedAddr =
       QHostAddress::parseSubnet(config.m_deviceIpv4Address);
-  QByteArray _deviceAddr = parsedAddr.first.toString().toLocal8Bit();
+  int prefixLength = parsedAddr.second;
+
+  // Extract the host address (before the '/')
+  QString hostIp = config.m_deviceIpv4Address.section('/', 0, 0);
+  QByteArray _deviceAddr = hostIp.toLocal8Bit();
   char* deviceAddr = _deviceAddr.data();
   inet_pton(AF_INET, deviceAddr, &ifrAddr->sin_addr);
 
@@ -101,7 +107,6 @@ bool IPUtilsLinux::addIP4AddressToDevice(const InterfaceConfig& config) {
   }
 
   // Set the subnet mask from the prefix length
-  int prefixLength = parsedAddr.second;
   struct sockaddr_in* ifrMask = (struct sockaddr_in*)&ifr.ifr_netmask;
   ifrMask->sin_family = AF_INET;
   if (prefixLength >= 32) {
@@ -126,10 +131,18 @@ bool IPUtilsLinux::addIP6AddressToDevice(const InterfaceConfig& config) {
   struct in6_ifreq ifr6;
   ifr6.prefixlen = 64;
 
-  // Get the device address to add to ifr6 interface
+  // Parse the address string to extract host IP and prefix length.
+  // Note: QHostAddress::parseSubnet() returns the network address,
+  // so we extract the host IP directly.
   QPair<QHostAddress, int> parsedAddr =
       QHostAddress::parseSubnet(config.m_deviceIpv6Address);
-  QByteArray _deviceAddr = parsedAddr.first.toString().toLocal8Bit();
+  if (parsedAddr.second >= 0) {
+    ifr6.prefixlen = parsedAddr.second;
+  }
+
+  // Extract the host address (before the '/')
+  QString hostIp = config.m_deviceIpv6Address.section('/', 0, 0);
+  QByteArray _deviceAddr = hostIp.toLocal8Bit();
   char* deviceAddr = _deviceAddr.data();
   inet_pton(AF_INET6, deviceAddr, &ifr6.addr);
 
