@@ -12,7 +12,7 @@
 #include "wireguardutilslinux.h"
 
 class LinuxDaemon final : public Daemon {
-  friend class IPUtilsMacos;
+  friend class IPUtilsLinux;
 
  public:
   LinuxDaemon();

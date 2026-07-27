@@ -26,6 +26,7 @@ class LinuxRouteMonitor final : public QObject {
 
   bool addExclusionRoute(const IPAddress& prefix);
   bool deleteExclusionRoute(const IPAddress& prefix);
+  void flushExclusionRoutes();
  private:
   static QString addrToString(const struct sockaddr* sa);
   static QString addrToString(const QByteArray& data);
@@ -36,6 +37,7 @@ class LinuxRouteMonitor final : public QObject {
   int m_nlsock = -1;
   int m_nlseq = 0;
   QSocketNotifier* m_notifier = nullptr;
+  QList<IPAddress> m_exclusionRoutes;
 
  private slots:
     void nlsockReady();

@@ -124,13 +124,11 @@ void LinuxPingSender::sendPing(const QHostAddress& dest, quint16 sequence) {
   packet.un.echo.sequence = htons(sequence);
   packet.checksum = inetChecksum(&packet, sizeof(packet));
 
-  int rc = sendto(m_socket, &packet, sizeof(packet), 0, (struct sockaddr*)&addr,
-                  sizeof(addr));
-  if (rc < 0) {
+  if (sendto(m_socket, &packet, sizeof(packet), MSG_NOSIGNAL,
+             (struct sockaddr*)&addr, sizeof(addr)) != sizeof(packet)) {
     logger.error() << "failed to send:" << strerror(errno);
-    if (errno == ENETUNREACH) {
-        emit criticalPingError();
-    }
+    emit criticalPingError();
+    return;
   }
 }
 
