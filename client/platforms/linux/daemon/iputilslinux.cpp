@@ -18,6 +18,7 @@
 
 namespace {
 Logger logger("IPUtilsLinux");
+constexpr quint32 IPv4FullMask = 0xffffffffU;
 }
 
 IPUtilsLinux::IPUtilsLinux(QObject* parent) : IPUtils(parent) {
@@ -113,7 +114,7 @@ bool IPUtilsLinux::addIP4AddressToDevice(const InterfaceConfig& config) {
   ifrMask->sin_family = AF_INET;
   quint32 mask = parsedSubnet.second == 0
                     ? 0
-                    : htonl(0xffffffffU << (32 - parsedSubnet.second));
+                    : htonl(IPv4FullMask << (32 - parsedSubnet.second));
   ifrMask->sin_addr.s_addr = mask;
   ret = ioctl(sockfd, SIOCSIFNETMASK, &ifr);
   if (ret) {
