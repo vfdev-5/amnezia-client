@@ -74,7 +74,6 @@ bool IPUtilsLinux::setMTUAndUp(const InterfaceConfig& config) {
 
 bool IPUtilsLinux::addIP4AddressToDevice(const InterfaceConfig& config) {
   struct ifreq ifr;
-  struct sockaddr_in* ifrAddr = (struct sockaddr_in*)&ifr.ifr_addr;
 
   QPair<QHostAddress, int> parsedSubnet =
       QHostAddress::parseSubnet(config.m_deviceIpv4Address);
@@ -88,6 +87,7 @@ bool IPUtilsLinux::addIP4AddressToDevice(const InterfaceConfig& config) {
   // Name the interface and set family
   memset(&ifr, 0, sizeof(ifr));
   strncpy(ifr.ifr_name, WG_INTERFACE, IFNAMSIZ);
+  struct sockaddr_in* ifrAddr = (struct sockaddr_in*)&ifr.ifr_addr;
   ifr.ifr_addr.sa_family = AF_INET;
 
   QByteArray _deviceAddr = deviceAddress.toString().toLocal8Bit();
@@ -110,6 +110,8 @@ bool IPUtilsLinux::addIP4AddressToDevice(const InterfaceConfig& config) {
     return false;
   }
 
+  memset(&ifr, 0, sizeof(ifr));
+  strncpy(ifr.ifr_name, WG_INTERFACE, IFNAMSIZ);
   struct sockaddr_in* ifrMask = (struct sockaddr_in*)&ifr.ifr_netmask;
   ifrMask->sin_family = AF_INET;
   quint32 mask = parsedSubnet.second == 0
