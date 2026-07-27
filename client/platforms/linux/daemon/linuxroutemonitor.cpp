@@ -75,10 +75,11 @@ LinuxRouteMonitor::LinuxRouteMonitor(const QString& ifname, QObject* parent)
 
 LinuxRouteMonitor::~LinuxRouteMonitor() {
   MZ_COUNT_DTOR(LinuxRouteMonitor);
+  flushExclusionRoutes();
   if (m_nlsock >= 0) {
       close(m_nlsock);
   }
-  logger.debug() << "WireguardUtilsLinux destroyed.";
+  logger.debug() << "LinuxRouteMonitor destroyed.";
 }
 
 // Compare memory against zero.
@@ -107,6 +108,11 @@ bool LinuxRouteMonitor::deleteRoute(const IPAddress& prefix) {
 bool LinuxRouteMonitor::addExclusionRoute(const IPAddress& prefix) {
     logger.debug() << "Adding exclusion route for"
                    << prefix.toString();
+    if (m_exclusionRoutes.contains(prefix)) {
+        logger.warning() << "Exclusion route already exists";
+        return false;
+    }
+    m_exclusionRoutes.append(prefix);
     const int flags = NLM_F_REQUEST | NLM_F_CREATE | NLM_F_REPLACE | NLM_F_ACK;
     return rtmSendRoute(RTM_NEWROUTE, flags, RTN_THROW, prefix);
 }
@@ -114,8 +120,17 @@ bool LinuxRouteMonitor::addExclusionRoute(const IPAddress& prefix) {
 bool LinuxRouteMonitor::deleteExclusionRoute(const IPAddress& prefix) {
     logger.debug() << "Removing exclusion route for"
                    << prefix.toString();
+    m_exclusionRoutes.removeAll(prefix);
     const int flags = NLM_F_REQUEST | NLM_F_ACK;
     return rtmSendRoute(RTM_DELROUTE, flags, RTN_THROW, prefix);
+}
+
+void LinuxRouteMonitor::flushExclusionRoutes() {
+    while (!m_exclusionRoutes.isEmpty()) {
+        IPAddress prefix = m_exclusionRoutes.takeFirst();
+        const int flags = NLM_F_REQUEST | NLM_F_ACK;
+        rtmSendRoute(RTM_DELROUTE, flags, RTN_THROW, prefix);
+    }
 }
 
 bool LinuxRouteMonitor::rtmSendRoute(int action, int flags, int type,
