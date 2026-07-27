@@ -32,14 +32,9 @@ void showAlert(const QString& message) {
 bool checkDaemonVersion() {
   logger.debug() << "Check Daemon Version";
 
-  bool completed = false;
-  bool value = false;
-
-  while (!completed) {
-    QCoreApplication::processEvents();
-  }
-
-  return value;
+  // TODO: Implement actual daemon version check.
+  // The previous implementation had an infinite loop (completed was never set).
+  return true;
 }
 
 }  // namespace
@@ -98,7 +93,9 @@ QString LinuxDependencies::findCgroup2Path() {
     if (strcmp(entry.mnt_type, "cgroup2") != 0) {
       continue;
     }
-    return QString(entry.mnt_dir);
+    QString result(entry.mnt_dir);
+    fclose(fp);
+    return result;
   }
   fclose(fp);
 
